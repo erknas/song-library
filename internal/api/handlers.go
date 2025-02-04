@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/erknas/song-library/internal/errs"
 	"github.com/erknas/song-library/internal/lib"
 	"github.com/erknas/song-library/internal/types"
 )
@@ -12,7 +13,7 @@ import (
 func (s *Server) handleSong(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case http.MethodGet:
-		return s.handleGetSongLyrics(ctx, w, r)
+		return s.handleGetSongText(ctx, w, r)
 	case http.MethodDelete:
 		return s.handleDeleteSong(ctx, w, r)
 	case http.MethodPut:
@@ -34,7 +35,7 @@ func (s *Server) handleSongs(ctx context.Context, w http.ResponseWriter, r *http
 }
 
 func (s *Server) handleGetSongs(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	pag, err := lib.PaginationValues(r)
+	pag, err := lib.SongsPaginationValues(r)
 	if err != nil {
 		return err
 	}
@@ -52,13 +53,13 @@ func (s *Server) handleGetSongs(ctx context.Context, w http.ResponseWriter, r *h
 	return lib.WriteJSON(w, http.StatusOK, types.Songs{Songs: songs})
 }
 
-func (s *Server) handleGetSongLyrics(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (s *Server) handleGetSongText(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	id, err := lib.ParseID(r)
 	if err != nil {
-		return err
+		return errs.InvalidID()
 	}
 
-	pag, err := lib.PaginationValues(r)
+	pag, err := lib.TextPaginationValues(r)
 	if err != nil {
 		return err
 	}
@@ -68,13 +69,15 @@ func (s *Server) handleGetSongLyrics(ctx context.Context, w http.ResponseWriter,
 		return err
 	}
 
-	return lib.WriteJSON(w, http.StatusOK, text)
+	resp := types.Text{Text: text}
+
+	return lib.WriteJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) handleDeleteSong(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	id, err := lib.ParseID(r)
 	if err != nil {
-		return err
+		return errs.InvalidID()
 	}
 
 	if err := s.srv.DeleteSong(ctx, id); err != nil {
@@ -89,13 +92,13 @@ func (s *Server) handleDeleteSong(ctx context.Context, w http.ResponseWriter, r 
 func (s *Server) handleUpdateSong(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	id, err := lib.ParseID(r)
 	if err != nil {
-		return err
+		return errs.InvalidID()
 	}
 
-	req := new(types.Song)
+	req := new(types.UpdateSongRequest)
 
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-		return err
+		return errs.InvalidJSON()
 	}
 	defer r.Body.Close()
 
@@ -112,12 +115,11 @@ func (s *Server) handleAddSong(ctx context.Context, w http.ResponseWriter, r *ht
 	req := new(types.SongRequest)
 
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-		return err
+		return errs.InvalidJSON()
 	}
 	defer r.Body.Close()
 
 	if err := s.srv.AddSong(ctx, req); err != nil {
-		s.log.Error("failed to add song", "error", err)
 		return err
 	}
 
