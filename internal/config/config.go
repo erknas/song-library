@@ -9,6 +9,7 @@ import (
 )
 
 type Config struct {
+	Env string `env:"ENV"`
 	ServerConifg
 	PostgresConfig
 }
