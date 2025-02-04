@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
+	"github.com/erknas/song-library/internal/errs"
 	"github.com/erknas/song-library/internal/types"
 )
 
@@ -20,7 +22,15 @@ func MakeHTTPFunc(fn APIFunc) http.HandlerFunc {
 		defer cancel()
 
 		if err := fn(ctx, w, r); err != nil {
-			WriteJSON(w, http.StatusBadRequest, map[string]any{"error": err.Error()})
+			if apiErr, ok := err.(errs.APIError); ok {
+				WriteJSON(w, apiErr.StatusCode, apiErr)
+			} else {
+				errResp := map[string]any{
+					"statusCode": http.StatusInternalServerError,
+					"msg":        "internal server error",
+				}
+				WriteJSON(w, http.StatusInternalServerError, errResp)
+			}
 		}
 	}
 }
@@ -36,7 +46,22 @@ func ParseID(r *http.Request) (int, error) {
 	return strconv.Atoi(id)
 }
 
-func PaginationValues(r *http.Request) (types.Pagination, error) {
+func ParseURL(lurl string, req *types.SongRequest) (string, error) {
+	baseURL, err := url.Parse(lurl)
+	if err != nil {
+		return "", err
+	}
+
+	params := url.Values{}
+	params.Add("group", req.Group)
+	params.Add("song", req.Song)
+
+	baseURL.RawQuery = params.Encode()
+
+	return baseURL.String(), nil
+}
+
+func SongsPaginationValues(r *http.Request) (types.Pagination, error) {
 	var (
 		strPage = r.FormValue("page")
 		strSize = r.FormValue("size")
@@ -52,12 +77,48 @@ func PaginationValues(r *http.Request) (types.Pagination, error) {
 
 	page, err := strconv.Atoi(strPage)
 	if err != nil {
-		return types.Pagination{}, err
+		return types.Pagination{}, errs.InvalidPage()
 	}
 
 	size, err := strconv.Atoi(strSize)
 	if err != nil {
-		return types.Pagination{}, err
+		return types.Pagination{}, errs.InvalidPageSize()
+	}
+
+	if page <= 0 {
+		return types.Pagination{}, errs.InvalidPage()
+	}
+
+	pagination := types.Pagination{
+		Page: page,
+		Size: size,
+	}
+
+	return pagination, nil
+}
+
+func TextPaginationValues(r *http.Request) (types.Pagination, error) {
+	var (
+		strPage = r.FormValue("page")
+		strSize = r.FormValue("size")
+	)
+
+	if len(strPage) == 0 {
+		strPage = "1"
+	}
+
+	if strSize != "1" && strSize != "5" && strSize != "10" {
+		strSize = "1"
+	}
+
+	page, err := strconv.Atoi(strPage)
+	if err != nil {
+		return types.Pagination{}, errs.InvalidPage()
+	}
+
+	size, err := strconv.Atoi(strSize)
+	if err != nil {
+		return types.Pagination{}, errs.InvalidPageSize()
 	}
 
 	pagination := types.Pagination{
@@ -86,7 +147,7 @@ func FilterValues(r *http.Request) (types.Filter, error) {
 
 	date, err := time.Parse(Layout, strDate)
 	if err != nil {
-		return types.Filter{}, err
+		return types.Filter{}, errs.InvalidDate()
 	}
 
 	filters := types.Filter{
