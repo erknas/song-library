@@ -16,7 +16,7 @@ func main() {
 	var (
 		ctx    = context.Background()
 		cfg    = config.Load()
-		logger = logger.New()
+		logger = logger.New(cfg.Env)
 	)
 
 	if err := migrations.New(cfg); err != nil {
@@ -29,7 +29,7 @@ func main() {
 	}
 	defer store.Close()
 
-	srv := service.New(cfg.ThirdPartyAPIURL, store)
+	srv := service.New(cfg.ThirdPartyAPIURL, logger, store)
 
 	server := api.NewServer(logger, srv)
 	server.Start(ctx, cfg)
