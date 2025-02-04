@@ -8,8 +8,8 @@ import (
 
 type Storer interface {
 	Songs(context.Context, types.Pagination) ([]*types.Song, error)
-	SongsByFilters(context.Context, types.Pagination, types.Filter) ([]*types.Song, error)
-	SongText(context.Context, types.Pagination, int) (string, error)
+	SongsByFilters(context.Context, string, []any) ([]*types.Song, error)
+	SongText(context.Context, int) (string, error)
 	DeleteSong(context.Context, int) error
 	UpdateSong(context.Context, int, *types.Song) error
 	AddSong(context.Context, *types.Song) error

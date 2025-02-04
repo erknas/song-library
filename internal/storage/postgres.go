@@ -73,11 +73,31 @@ func (p *PostgresPool) Songs(ctx context.Context, pag types.Pagination) ([]*type
 	return songs, nil
 }
 
-func (p *PostgresPool) SongsByFilters(ctx context.Context, pag types.Pagination, fil types.Filter) ([]*types.Song, error) {
-	return nil, nil
+func (p *PostgresPool) SongsByFilters(ctx context.Context, query string, args []any) ([]*types.Song, error) {
+	rows, err := p.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var songs []*types.Song
+
+	for rows.Next() {
+		song := new(types.Song)
+		if err := rows.Scan(&song.ID, &song.Song, &song.Group, &song.ReleaseDate, &song.Text, &song.Link); err != nil {
+			return nil, err
+		}
+		songs = append(songs, song)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return songs, nil
 }
 
-func (p *PostgresPool) SongText(ctx context.Context, pag types.Pagination, id int) (string, error) {
+func (p *PostgresPool) SongText(ctx context.Context, id int) (string, error) {
 	query := `SELECT text 
 			  FROM songs 
 			  WHERE id=@id
