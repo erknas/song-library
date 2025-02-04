@@ -1,5 +1,9 @@
 package types
 
+type Text struct {
+	Text []string `json:"text"`
+}
+
 type SongResponse struct {
 	StatusCode int    `json:"statusCode"`
 	Msg        string `json:"msg"`
