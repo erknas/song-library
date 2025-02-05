@@ -18,11 +18,13 @@ import (
 )
 
 const (
-	GetSongsMethod    = "GetSongs"
-	GetSongTextMethod = "GetSongText"
-	DeleteSongMethod  = "DeleteSong"
-	UpdateSongMethod  = "UpdateSong"
-	AddSongMethod     = "AddSong"
+	fnName             = "func"
+	getSongsFn         = "GetSongs"
+	getSongTextFn      = "GetSongText"
+	deleteSongFn       = "DeleteSong"
+	updateSongFn       = "UpdateSong"
+	addSongFn          = "AddSong"
+	fetchSongDetailsFn = "fetchSongDetails"
 )
 
 type Response struct {
@@ -45,7 +47,7 @@ func New(url string, log *slog.Logger, store storage.Storer) *Service {
 }
 
 func (s *Service) GetSongs(ctx context.Context, pag types.Pagination, fil types.Filter) ([]*types.Song, error) {
-	log := s.log.With(slog.String("methodName", GetSongsMethod))
+	log := s.log.With(slog.String(fnName, getSongsFn))
 
 	page := (pag.Page - 1) * pag.Size
 
@@ -117,8 +119,8 @@ func (s *Service) GetSongs(ctx context.Context, pag types.Pagination, fil types.
 }
 
 func (s *Service) GetSongText(ctx context.Context, pag types.Pagination, id int) ([]string, error) {
-	log := s.log.With(slog.String("methodName", GetSongTextMethod))
 	ctx = logger.WithSongID(ctx, id)
+	log := s.log.With(slog.String(fnName, getSongTextFn))
 
 	log.DebugContext(ctx, "song text pagination", "pagination", pag)
 
@@ -157,8 +159,8 @@ func (s *Service) GetSongText(ctx context.Context, pag types.Pagination, id int)
 }
 
 func (s *Service) DeleteSong(ctx context.Context, id int) error {
-	log := s.log.With(slog.String("methodName", DeleteSongMethod))
 	ctx = logger.WithSongID(ctx, id)
+	log := s.log.With(slog.String(fnName, deleteSongFn))
 
 	if err := s.store.DeleteSong(ctx, id); err != nil {
 		log.ErrorContext(ctx, "failed to delete song", sl.Err(err))
@@ -171,12 +173,12 @@ func (s *Service) DeleteSong(ctx context.Context, id int) error {
 }
 
 func (s *Service) UpdateSong(ctx context.Context, id int, req *types.UpdateSongRequest) error {
-	log := s.log.With(slog.String("methodName", UpdateSongMethod))
 	ctx = logger.WithSongID(ctx, id)
+	log := s.log.With(slog.String(fnName, updateSongFn))
 
 	releaseDate, err := time.Parse(lib.Layout, req.ReleaseDate)
 	if err != nil {
-		log.ErrorContext(ctx, "failed to parse data", sl.Err(err))
+		log.ErrorContext(ctx, "failed to parse date", sl.Err(err))
 		return errs.InvalidDate()
 	}
 
@@ -200,9 +202,9 @@ func (s *Service) UpdateSong(ctx context.Context, id int, req *types.UpdateSongR
 }
 
 func (s *Service) AddSong(ctx context.Context, req *types.SongRequest) error {
-	log := s.log.With(slog.String("methodName", AddSongMethod))
+	log := s.log.With(slog.String(fnName, addSongFn))
 
-	log.DebugContext(ctx, "song request")
+	log.DebugContext(ctx, "song request", "req", req)
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
@@ -210,7 +212,7 @@ func (s *Service) AddSong(ctx context.Context, req *types.SongRequest) error {
 	respch := make(chan Response)
 
 	go func() {
-		song, err := s.fetchSongDetails(req)
+		song, err := s.fetchSongDetails(ctx, req)
 		if err != nil {
 			respch <- Response{err: err}
 			return
@@ -238,27 +240,49 @@ func (s *Service) AddSong(ctx context.Context, req *types.SongRequest) error {
 	}
 }
 
-func (s *Service) fetchSongDetails(req *types.SongRequest) (*types.Song, error) {
+func (s *Service) fetchSongDetails(ctx context.Context, req *types.SongRequest) (*types.Song, error) {
+	log := s.log.With(fnName, fetchSongDetailsFn)
+
 	u, err := lib.ParseURL(s.url, req)
+	if err != nil {
+		log.ErrorContext(ctx, "failed to parse URL", sl.Err(err))
+		return nil, err
+	}
+
+	log.InfoContext(ctx, "parsed URL", "url", u)
+
+	client := &http.Client{}
+
+	r, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := http.Get(u)
+	resp, err := client.Do(r)
 	if err != nil {
+		log.ErrorContext(ctx, "failed to make request to API", "url", u)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
+	log.InfoContext(ctx, "response status code", "code", resp.StatusCode)
+
+	if resp.StatusCode != http.StatusOK {
+		log.ErrorContext(ctx, "unexpected status code", "status code", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
 	details := new(types.Details)
 
 	if err := json.NewDecoder(resp.Body).Decode(details); err != nil {
-		return nil, errs.InvalidJSON()
+		log.ErrorContext(ctx, "failed to decode JSON response", sl.Err(err))
+		return nil, err
 	}
 
 	releaseDate, err := time.Parse(lib.Layout, details.ReleaseDate)
 	if err != nil {
-		return nil, errs.InvalidDate()
+		log.ErrorContext(ctx, "failed to parse date", sl.Err(err))
+		return nil, err
 	}
 
 	song := &types.Song{
@@ -268,6 +292,8 @@ func (s *Service) fetchSongDetails(req *types.SongRequest) (*types.Song, error) 
 		Text:        details.Text,
 		Link:        details.Link,
 	}
+
+	log.InfoContext(ctx, "fetch song details OK", "details", details)
 
 	return song, nil
 }
