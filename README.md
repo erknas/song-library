@@ -20,11 +20,11 @@ REST API song manager project.
 
 Examples:
 
-1. Get songs with pagination and filters
+1. Get songs with pagination and filters. Page size can be 10, 25 or 50; default is 10.
 
 `/songs?page=1&size=10&song=Supermassive%20Black%20Hole&group=Muse&date=16.07.2016`
 
-2. Get song text
+2. Get song text with pagination. Page size can be 1, 5 or 10; default is 1.
 
 `/song?id=1&page=1&size=1`
 
