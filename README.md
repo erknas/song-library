@@ -9,8 +9,6 @@ REST API song manager project.
 - **[POST]** — Add new song.
 - **[GET]** — Get songs with pagination and optional with filters by song, group and realease date.
 
-  For example
-
 2. `/song`
 
 - **[GET]** — Get song text by verses with pagination.
