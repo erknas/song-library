@@ -3,6 +3,7 @@ package migrations
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/erknas/song-library/internal/config"
 	"github.com/golang-migrate/migrate/v4"
@@ -12,6 +13,8 @@ import (
 
 func New(cfg *config.Config) error {
 	dns := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
+
+	time.Sleep(time.Second * 3)
 
 	m, err := migrate.New(cfg.MigrationPath, dns)
 	if err != nil {
