@@ -10,9 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/erknas/song-library/docs"
 	"github.com/erknas/song-library/internal/config"
 	"github.com/erknas/song-library/internal/lib"
 	"github.com/erknas/song-library/internal/service"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 const ctxTimeout time.Duration = time.Second * 10
@@ -29,6 +31,10 @@ func NewServer(log *slog.Logger, srv service.Servicer) *Server {
 	}
 }
 
+//	@title			song-library API
+//	@version		0.0.1
+//	@description	API for managing songs
+//	@host			localhost:3000
 func (s *Server) Start(ctx context.Context, cfg *config.Config) {
 	router := http.NewServeMux()
 
@@ -70,4 +76,6 @@ func (s *Server) Start(ctx context.Context, cfg *config.Config) {
 func (s *Server) registerRoutes(router *http.ServeMux) {
 	router.HandleFunc("/songs", lib.MakeHTTPFunc(s.handleSongs))
 	router.HandleFunc("/song", lib.MakeHTTPFunc(s.handleSong))
+
+	router.Handle("/swagger/", httpSwagger.WrapHandler)
 }

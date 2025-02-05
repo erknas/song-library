@@ -1,0 +1,251 @@
+definitions:
+  errs.APIError:
+    properties:
+      msg: {}
+      statusCode:
+        type: integer
+    type: object
+  types.Song:
+    properties:
+      group:
+        type: string
+      id:
+        type: integer
+      link:
+        type: string
+      releaseDate:
+        type: string
+      song:
+        type: string
+      text:
+        type: string
+    type: object
+  types.SongRequest:
+    properties:
+      group:
+        type: string
+      song:
+        type: string
+    type: object
+  types.SongResponse:
+    properties:
+      msg:
+        type: string
+      statusCode:
+        type: integer
+    type: object
+  types.Text:
+    properties:
+      text:
+        items:
+          type: string
+        type: array
+    type: object
+  types.UpdateSongRequest:
+    properties:
+      group:
+        type: string
+      link:
+        type: string
+      releaseDate:
+        type: string
+      song:
+        type: string
+      text:
+        type: string
+    type: object
+host: localhost:3000
+info:
+  contact: {}
+  description: API for managing songs
+  title: song-library API
+  version: 0.0.1
+paths:
+  /song:
+    delete:
+      description: Delete song by ID
+      parameters:
+        - description: Song ID
+          in: query
+          name: id
+          required: true
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/types.SongResponse"
+        "400":
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/errs.APIError"
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete song
+      tags:
+        - song
+    get:
+      description: Get a paginated list of verses by song
+      parameters:
+        - description: Song ID
+          in: query
+          name: id
+          required: true
+          type: integer
+        - default: 1
+          description: Page number
+          example: 1
+          in: query
+          name: page
+          type: integer
+        - default: 1
+          description: Number of verses per page
+          enum:
+            - 1
+            - 5
+            - 10
+          example: 1
+          in: query
+          name: size
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: "#/definitions/types.Text"
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/errs.APIError"
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get a list of verses by song
+      tags:
+        - song
+    put:
+      consumes:
+        - application/json
+      description: Update song by ID
+      parameters:
+        - description: Song ID
+          in: query
+          name: id
+          required: true
+          type: integer
+        - description: Update song data
+          in: body
+          name: song
+          required: true
+          schema:
+            $ref: "#/definitions/types.UpdateSongRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: "#/definitions/types.SongResponse"
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/errs.APIError"
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update song
+      tags:
+        - song
+  /songs:
+    get:
+      description: Get a paginated list of songs with optional filtering
+      parameters:
+        - default: 1
+          description: Page number
+          example: 1
+          in: query
+          name: page
+          type: integer
+        - default: 10
+          description: Number of songs per page
+          enum:
+            - 10
+            - 25
+            - 50
+          example: 10
+          in: query
+          name: size
+          type: integer
+        - description: Filter by song
+          example: Supermassive Black Hole
+          in: query
+          name: song
+          type: string
+        - description: Filter by group
+          example: Muse
+          in: query
+          name: group
+          type: string
+        - description: Filter by release_date
+          example: 16.07.2006
+          in: query
+          name: date
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: "#/definitions/types.Song"
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/errs.APIError"
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get a list of songs
+      tags:
+        - songs
+    post:
+      consumes:
+        - application/json
+      description: Add song
+      parameters:
+        - description: Song data
+          in: body
+          name: song
+          required: true
+          schema:
+            $ref: "#/definitions/types.SongRequest"
+      produces:
+        - application/json
+      responses:
+        "400":
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/errs.APIError"
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add song
+      tags:
+        - songs
+swagger: "2.0"
