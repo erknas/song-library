@@ -22,15 +22,11 @@ Examples:
 
 1. Get songs with pagination and filters
 
-```
-/songs?page=1&size=10&song=Supermassive%20Black%20Hole&group=Muse&date=16.07.2016
-```
+`/songs?page=1&size=10&song=Supermassive%20Black%20Hole&group=Muse&date=16.07.2016`
 
 2. Get song text
 
-```
-/song?id=1&page=1&size=1
-```
+`/song?id=1&page=1&size=1`
 
 ### RUN
 
