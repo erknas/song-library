@@ -1,12 +1,23 @@
 version: '3.8'
 
 services:
+  song-library:
+    container_name: ${SERVICE_CONTAINER_NAME}
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+    ports:
+      - ${SERVICE_PORTS} 
+    environment:
+      - POSTGRES_URL=${POSTGRES_URL}
   postgres:
     image: ${POSTGRES_IMAGE}
-    container_name: ${CONTAINER_NAME}
+    container_name: ${POSTGRES_CONTAINER_NAME}
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     ports:
-      - ${PORTS}
+      - ${POSTGRES_PORTS}
