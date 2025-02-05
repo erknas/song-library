@@ -20,12 +20,12 @@ func main() {
 	)
 
 	if err := migrations.New(cfg); err != nil {
-		log.Fatal(err)
+		log.Fatalf("migrations failed: %s", err)
 	}
 
 	store, err := storage.NewPostgresPool(ctx, cfg)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("connect to postgres failed: %s", err)
 	}
 	defer store.Close()
 
