@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"os"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -16,7 +18,8 @@ type keyType int
 const key = keyType(0)
 
 type logCtx struct {
-	SongID int
+	SongID    int
+	RequestID uuid.UUID
 }
 
 type HandlerMiddleware struct {
@@ -37,6 +40,9 @@ func (h *HandlerMiddleware) Handle(ctx context.Context, rec slog.Record) error {
 	if c, ok := ctx.Value(key).(logCtx); ok {
 		if c.SongID != 0 {
 			rec.Add("songID", c.SongID)
+		}
+		if c.RequestID != uuid.Nil {
+			rec.Add("requestID", c.RequestID)
 		}
 	}
 	return h.next.Handle(ctx, rec)
@@ -73,4 +79,12 @@ func WithSongID(ctx context.Context, id int) context.Context {
 		return context.WithValue(ctx, key, c)
 	}
 	return context.WithValue(ctx, key, logCtx{SongID: id})
+}
+
+func WithRequestID(ctx context.Context) context.Context {
+	if c, ok := ctx.Value(key).(logCtx); ok {
+		c.RequestID = uuid.New()
+		return context.WithValue(ctx, key, c)
+	}
+	return context.WithValue(ctx, key, logCtx{RequestID: uuid.New()})
 }

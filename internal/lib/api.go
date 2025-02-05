@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/erknas/song-library/internal/errs"
+	"github.com/erknas/song-library/internal/logger"
 	"github.com/erknas/song-library/internal/types"
 )
 
@@ -20,6 +21,8 @@ func MakeHTTPFunc(fn APIFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 		defer cancel()
+
+		ctx = logger.WithRequestID(ctx)
 
 		if err := fn(ctx, w, r); err != nil {
 			if apiErr, ok := err.(errs.APIError); ok {
